@@ -127,6 +127,95 @@ public class VerkkokauppaTest {
 
     }
 
+    @Test
+    public void aloitaAsiointiNollaaTiedot() {
+
+        Pankki pankki = mock(Pankki.class);
+        Viitegeneraattori viite = mock(Viitegeneraattori.class);
+        Varasto varasto = mock(Varasto.class);
+        
+
+        when(viite.uusi()).thenReturn(123);
+        when(varasto.saldo(1)).thenReturn(10); 
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+    
+        Kauppa k = new Kauppa(varasto, pankki, viite);                  
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1); 
+        k.tilimaksu("pekka", "12345");
+    
+        // sitten suoritetaan varmistus, että pankin metodia tilisiirto on kutsuttu
+        verify(pankki).tilisiirto(eq("pekka"), eq(123), eq("12345"), eq("33333-44455"), eq(5)); 
+
+        k.aloitaAsiointi();
+        k.tilimaksu("pekka", "12345");
+        verify(pankki).tilisiirto(eq("pekka"), eq(123), eq("12345"), eq("33333-44455"), eq(0)); 
+        
+    }
+
+    @Test
+    public void pyydetaanUusiViiteJokaiseenMaksuun() {
+        Pankki pankki = mock(Pankki.class);
+        Viitegeneraattori viite = mock(Viitegeneraattori.class);
+        Varasto varasto = mock(Varasto.class);
+        
+
+        when(viite.uusi()).thenReturn(123);
+        when(varasto.saldo(1)).thenReturn(10); 
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+    
+        Kauppa k = new Kauppa(varasto, pankki, viite);   
+
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1); 
+        k.tilimaksu("pekka", "12345");
+
+        // tarkistetaan että tässä vaiheessa viitegeneraattorin metodia seuraava()
+        // on kutsuttu kerran
+        verify(viite, times(1)).uusi();
+
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1); 
+        k.tilimaksu("juha", "11111");
+
+        // tarkistetaan että tässä vaiheessa viitegeneraattorin metodia seuraava()
+        // on kutsuttu kaksi kertaa
+        verify(viite, times(2)).uusi();
+
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1); 
+        k.tilimaksu("jari", "22222");
+
+        // tarkistetaan että tässä vaiheessa viitegeneraattorin metodia seuraava()
+        // on kutsuttu kolme kertaa        
+        verify(viite, times(3)).uusi();
+    }
+
+    @Test
+    public void tuotteenVoiPoistaaOstoskorista() {
+        Pankki pankki = mock(Pankki.class);
+        Viitegeneraattori viite = mock(Viitegeneraattori.class);
+        Varasto varasto = mock(Varasto.class);
+        
+
+        when(viite.uusi()).thenReturn(123);
+        when(varasto.saldo(1)).thenReturn(10); 
+        when(varasto.saldo(2)).thenReturn(10); 
+        when(varasto.haeTuote(1)).thenReturn(new Tuote(1, "maito", 5));
+        when(varasto.haeTuote(2)).thenReturn(new Tuote(2, "kerma", 6));
+    
+        Kauppa k = new Kauppa(varasto, pankki, viite);                  
+        k.aloitaAsiointi();
+        k.lisaaKoriin(1); 
+        k.lisaaKoriin(2); 
+        k.poistaKorista(1); 
+        k.tilimaksu("pekka", "12345");
+    
+        // sitten suoritetaan varmistus, että pankin metodia tilisiirto on kutsuttu
+        verify(pankki).tilisiirto(eq("pekka"), eq(123), eq("12345"), eq("33333-44455"), eq(6)); 
+
+    }
+
     
 }
 /*
